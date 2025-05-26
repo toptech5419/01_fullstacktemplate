@@ -1,26 +1,26 @@
-/*
-Contains middleware for protecting routes, checking user authentication, and redirecting as needed.
-*/
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
 
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server"
-import { NextResponse } from "next/server"
-
-const isProtectedRoute = createRouteMatcher(["/todo(.*)"])
+// Define protected routes
+const isProtectedRoute = createRouteMatcher(["/todo(.*)"]);
 
 export default clerkMiddleware(async (auth, req) => {
-  const { userId, redirectToSignIn } = await auth()
+  const { userId, redirectToSignIn } = await auth();
 
   // If the user isn't signed in and the route is private, redirect to sign-in
   if (!userId && isProtectedRoute(req)) {
-    return redirectToSignIn({ returnBackUrl: "/login" })
+    return redirectToSignIn({ returnBackUrl: req.url });
   }
 
-  // If the user is logged in and the route is protected, let them view.
-  if (userId && isProtectedRoute(req)) {
-    return NextResponse.next()
-  }
-})
+  // Allow the request to proceed
+  return NextResponse.next();
+});
 
 export const config = {
-  matcher: ["/((?!.*\\..*|_next).*)", "/", "/(api|trpc)(.*)"]
-}
+  matcher: [
+    // Match all routes except static files and Next.js internals
+    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    // Match API routes
+    "/(api|trpc)(.*)",
+  ],
+};
